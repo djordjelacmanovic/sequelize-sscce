@@ -22,8 +22,21 @@ module.exports = async function() {
             timestamps: false // For less clutter in the SSCCE
         }
     });
-    const Foo = sequelize.define('Foo', { name: DataTypes.TEXT });
+    const Foo = sequelize.define('Foo', { name: DataTypes.TEXT, barId: DataTypes.INTEGER, bazId: DataTypes.INTEGER });
+    const Bar = sequelize.define('Bar', { label: DataTypes.STRING, isDeleted: { type: DataTypes.BOOLEAN, defaultValue: true } });
+    const Baz = sequelize.define('Baz', { tag: DataTypes.STRING });
+    
+    Foo.belongsTo(Bar);
+    Foo.belonsTo(Baz);
+    
     await sequelize.sync();
-    log(await Foo.create({ name: 'foo' }));
-    expect(await Foo.count()).to.equal(1);
+    
+    let bar = await Bar.create({ label: 'test Bar' })
+    let baz = await Baz.create({ tag: 'test Baz' });  
+    
+    log(await Foo.create({ name: 'foo', barId: bar.id, bazId: baz.id }));
+  
+    expect(await Foo.findAll({
+      include: [{ model: Bar, where: [{isDeleted: false}]}, { model: Baz }]
+    })).to.have.lengthOf(1);
 };
